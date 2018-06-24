@@ -1,0 +1,39 @@
+name:                wacom
+version:             1.0.0
+synopsis:            Auto-configure my Wacom tablet, if it's plugged in.
+description:         Auto-configure my Wacom tablet, if it's plugged in.
+homepage:            https://gitlab.com/fosskers/wacom
+license:             BSD3
+author:              Colin Woodbury
+maintainer:          colin@fosskers.ca
+copyright:           2018 Colin Woodbury
+category:            System
+
+extra-source-files:
+  - README.md
+
+ghc-options:
+  - -fwarn-unused-imports
+  - -fwarn-unused-binds
+  - -fwarn-name-shadowing
+  - -fwarn-unused-matches
+  - -fwarn-incomplete-patterns
+  - -fwarn-incomplete-uni-patterns
+  - -fwarn-redundant-constraints
+
+default-extensions:
+  - NoImplicitPrelude
+
+dependencies:
+  - base >= 4.7 && < 5
+  - base-prelude >= 1.2 && < 1.4
+  - containers
+  - megaparsec >= 6.4 && < 6.6
+  - shelly
+  - text
+
+executables:
+  wacom:
+    source-dirs:      src
+    other-modules:    []
+    main:             Main.hs
