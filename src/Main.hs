@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+module Main ( main ) where
 
-import           BasePrelude hiding (some)
+import           Control.Arrow ((***))
+import           Control.Monad (void)
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
+import           Data.Void (Void)
 import           Shelly
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
@@ -21,11 +23,11 @@ infoP = f . M.fromList <$> some line
 
 line :: Parsec Void T.Text (T.Text, Word)
 line = L.lexeme space $ do
-  skipManyTill anyChar $ string "id:"
+  void . skipManyTill anySingle $ string "id:"
   space
   w <- L.decimal
   space
-  string "type:"
+  void $ string "type:"
   space
   t <- T.strip <$> takeWhileP Nothing (/= '\n')
   pure (t, w)
@@ -42,18 +44,24 @@ useBigMonitorOnly (Stylus s) = run_ "xsetwacom" ["--set", T.pack $ show s, "MapT
 fixAspectRatio :: Stylus -> Sh ()
 fixAspectRatio (Stylus s) = run_ "xsetwacom" ["--set", T.pack $ show s, "Area", "0", "0", "15200", "8550"]
 
--- | `p` is the "pen" shortcut in Piskel.
+-- | `b` is the "brush" shortcut in Aseprite.
 penButton :: Pad -> Sh ()
-penButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "1", "key p"]
+penButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "1", "key b"]
 
--- | `e` is the "eraser" shortcut in Piskel.
+-- | `e` is the "eraser" shortcut in Piskel / Aseprite.
 eraserButton :: Pad -> Sh ()
-eraserButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "2", "key e"]
+eraserButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "8", "key e"]
+
+selectButton :: Pad -> Sh ()
+selectButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "3", "key m"]
 
 -- | While the first three pad buttons have Id's 1, 2, and 3, the right-most button
 -- has Id 8.
-undoButton :: Pad -> Sh ()
-undoButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "8", "key +ctrl z -ctrl"]
+-- undoButton :: Pad -> Sh ()
+-- undoButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "8", "key +ctrl z -ctrl"]
+
+dropperButton :: Pad -> Sh ()
+dropperButton (Pad p) = run_ "xsetwacom" ["--set", T.pack $ show p, "Button", "2", "key i"]
 
 -- | `xsetwacom --list devices` returns nothing when the tablet isn't connected.
 tabletInfo :: Sh T.Text
@@ -63,12 +71,14 @@ main :: IO ()
 main = shelly . print_stdout False $ do
   info <- tabletInfo
   case parse infoP "Wacom Info" info of
-    Left err -> echo . T.pack $ parseErrorPretty err
+    Left err -> echo . T.pack $ errorBundlePretty err
     Right Nothing -> echo "Couldn't parse the device Ids."
     Right (Just (s, p)) -> do
       useBigMonitorOnly s
       fixAspectRatio s
       penButton p
       eraserButton p
-      undoButton p
+      selectButton p
+      -- undoButton p
+      dropperButton p
       echo "Tablet configured!"
